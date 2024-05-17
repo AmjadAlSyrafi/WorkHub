@@ -13,13 +13,16 @@ User = get_user_model()
 
 ## I created Serializers for each type user... mafi lil ejari liliii mafi lil 
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+    role = serializers.CharField(read_only=True)
     class Meta:
         model = User
         fields = (
             "username",
             "email",
             "role",
-            'password'
+            'password',
             'confirm_password'
         )
 
@@ -31,7 +34,20 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = (
             '__all__'
         )
-
+        
+class CreateCompanySerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    class Meta:
+        model = Company
+        fields = ('user','company_name', 'location', 'employee_count', 'field_work', 'phone_number')
+        
+    def validate(self, attrs):
+        employee_count = attrs.get('employee_count')
+        if employee_count and employee_count < 1:
+            raise serializers.ValidationError("Employee count must be at least 1.")
+        
+        return attrs
+        
 class CompanySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
@@ -47,37 +63,7 @@ class CompanySerializer(serializers.ModelSerializer):
 class RegisterEmployeeSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
-    role = serializers.CharField(read_only=True, default=User.Role.EMOLOYEE)
-
-    class Meta:
-        model = User
-        fields = '__all__'
-
-    if User.objects.filter(username=username).exists():
-            raise serializers.ValidationError("Username already exists.")
-
-        # Check if email already exists
-    if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError("Email already exists.")
-
-        # Check if passwords match
-    if password != confirm_password:
-            raise serializers.ValidationError("Passwords do not match.")
-
-    return attrs
-
-    def create(self, validated_data):
-        """Create a new user."""
-        validated_data.pop("confirm_password")
-        user = User.objects.create_user(**validated_data)
-        return user
-
-
-##Company
-class RegisterCompanySerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-    confirm_password = serializers.CharField(write_only=True)
-    role = serializers.CharField(read_only=True, default=User.Role.COMPANY)
+    role = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
@@ -108,6 +94,59 @@ class RegisterCompanySerializer(serializers.ModelSerializer):
         validated_data.pop("confirm_password")
         user = User.objects.create_user(**validated_data)
         return user
+
+
+##Company
+class UserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+    role = serializers.CharField(read_only=True)  # Maintain for informative purposes
+
+    class Meta:
+        model = User
+        fields = ('username', 'email','confirm_password','password', 'role')  # Exclude 'role' from fields
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        email = attrs.get('email')
+        password = attrs.get('password')
+        confirm_password = attrs.get('confirm_password')
+
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            raise serializers.ValidationError("Username already exists.")
+
+        # Check if email already exists
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError("Email already exists.")
+
+        # Check if passwords match
+        if password != confirm_password:
+            raise serializers.ValidationError("Passwords do not match.")
+
+        return attrs
+
+
+class RegisterCompanySerializer(serializers.Serializer):
+    user = UserCreateSerializer(required=True)
+    company = CreateCompanySerializer(required=True)
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        company_data = validated_data.pop('company')    
+
+        # Create user
+        user_data.pop("confirm_password")
+        user = User.objects.create_user(**user_data)
+
+        # Create company
+        company_data['user'] = user  # Assign the created user to the company
+        company = Company.objects.create(**company_data)
+
+        return {
+            'user': user,
+            'company': company
+        }
     
 ## login with make acsses and refresh token for all
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -135,8 +174,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         if user:
             data = super().validate(attrs)
             data["username"] = user.username
-            data["role"] = user.role
-            return data
+            return data 
         else:
             raise serializers.ValidationError("Incorrect email/username or password.")
 
@@ -144,6 +182,5 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
         token["username"] = user.username
-        token["role"] = user.role
         return token
 
