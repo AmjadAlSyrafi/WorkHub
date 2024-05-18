@@ -11,19 +11,6 @@ User = get_user_model()
 
 
 ## User 
-class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-    confirm_password = serializers.CharField(write_only=True)
-    role = serializers.CharField(read_only=True)
-    class Meta:
-        model = User
-        fields = (
-            "username",
-            "email",
-            "role",
-            'password',
-            'confirm_password'
-        )
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
@@ -54,16 +41,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return attrs
 
 ## Company 
-class CompanySerializer(serializers.Serializer):
-    user = UserSerializer(read_only=True)
-    class Meta:
-        model = Company
-        fields = (
-            '__all__'
-        )
-        
 class CreateCompanySerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    user = UserCreateSerializer(read_only=True)
     class Meta:
         model = Company
         fields = ('user','company_name', 'location', 'employee_count', 'field_work', 'phone_number')
@@ -97,22 +76,25 @@ class RegisterCompanySerializer(serializers.Serializer):
         }
 
 ##Employee
-
-class EmployeeSerializers(serializers.ModelSerializer):
-   user = UserSerializer(read_only=True) 
-   class Meta:
-        model = Employee
-        fields = (
-             '__all__'
-        )
-
 class CreateEmployeeSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    user = UserCreateSerializer(read_only=True)
 
     class Meta:
         model = Employee
         fields = (
-             '__all__'
+            "user",
+            "full_name",
+            "nationality",
+            "phone",
+            "date_of_birth",
+            "gender",
+            "job_level" ,
+            "edu_level",
+            "job_status" ,
+            "work_city",
+            "job_type",
+            "experience_year",
+            "salary_range" 
         )
     def validate(self, attrs):
          experience_year = attrs.get('experience_year')  
