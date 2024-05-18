@@ -12,6 +12,21 @@ from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 # Create your views here.
 
+
+class CreateUserView(generics.CreateAPIView):
+    queryset = User.objects.none()  # No queryset needed for create-only views
+    permission_classes = [AllowAny]  # Adjust permissions as needed
+    serializer_class = UserCreateSerializer
+
+    def perform_create(self, serializer):
+        
+        if not serializer.is_valid(raise_exception=True):
+            return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
+        
+        serializer.validated_data
+        user = serializer.save()
+        
+
 class RegisterCompanyView(CreateAPIView):
     serializer_class = RegisterCompanySerializer
     
@@ -42,38 +57,32 @@ class RegisterCompanyView(CreateAPIView):
  
 
 class RegisterEmployeeView(generics.CreateAPIView):
-    """View for registering an employee."""
-    queryset = User.objects.none()  # Assuming we don't need queryset here
-    permission_classes = [AllowAny]
-    serializer_class = RegisterEmployeeSerializer
-
-    def perform_create(self, serializer):
-        inst = serializer.save(role=User.Role.EMPLOYEE)
+   serializer_class = RegisterEmployeeSerializer
+    
+   def perform_create(self, serializer):
+        result = serializer.save()
+        user = result['user']
+        employee = result['employee']
         
-class CreateUserView(generics.CreateAPIView):
-    queryset = User.objects.none()  # No queryset needed for create-only views
-    permission_classes = [AllowAny]  # Adjust permissions as needed
-    serializer_class = UserCreateSerializer
-
-    def perform_create(self, serializer):
+        user.role = User.Role.EMPLOYEE
+        user.save()
         
-        if not serializer.is_valid(raise_exception=True):
-            return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
-        
-        serializer.validated_data
-        user = serializer.save()
-        
+        # Add the user to the 'Company' group
         try:
-                group_object = Group.objects.get(name='Company')  # Attempt to retrieve the group
+            group_object = Group.objects.get(name='Employee')
         except Group.DoesNotExist:
-            # Create the group if it doesn't exist
-            group_object = Group.objects.create(name='Company')
-            
+            group_object = Group.objects.create(name='Employee')
+        
         user.groups.add(group_object)
         
-        return Response(status.HTTP_201_CREATED)
-    
+        response_data = {
+            'status': 'success',
+            'user': user,
+            'employee': employee
+        }
 
+        return Response(data = response_data, status=status.HTTP_201_CREATED)
+         
 ## Login For all 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer

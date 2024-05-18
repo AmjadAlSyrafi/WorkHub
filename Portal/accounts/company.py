@@ -10,7 +10,7 @@ class Company(models.Model):
     location = models.CharField(max_length=100)
     employee_count = models.IntegerField(validators=[MinValueValidator(1)])
     field_work = models.CharField(max_length=100)
-    phone_number = models.CharField(max_length=15)
+    phone_number = models.IntegerField(max_length=15)
 
     def __str__(self):
         return self.user.username
