@@ -30,8 +30,11 @@ class CreateUserView(generics.CreateAPIView):
 class RegisterCompanyView(CreateAPIView):
     serializer_class = RegisterCompanySerializer
     
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         result = serializer.save()
+
         user = result['user']
         company = result['company']
         
@@ -49,8 +52,19 @@ class RegisterCompanyView(CreateAPIView):
         
         response_data = {
             'status': 'success',
-            'user': user,
-            'company':company
+            'message' : 'The user has been created successfully',
+            'user': {
+                'username': user.username,
+                'email': user.email,
+                'role': user.role,
+            },
+            'company': {
+                'company_name': company.company_name,
+                'location': company.location,
+                'employee_count': company.employee_count,
+                'field_work': company.field_work,
+                'phone_number': company.phone_number,
+            }
         }
 
         return Response(data = response_data, status=status.HTTP_201_CREATED)
@@ -59,7 +73,9 @@ class RegisterCompanyView(CreateAPIView):
 class RegisterEmployeeView(generics.CreateAPIView):
    serializer_class = RegisterEmployeeSerializer
     
-   def perform_create(self, serializer):
+   def create(self, request,):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         result = serializer.save()
         user = result['user']
         employee = result['employee']
