@@ -3,15 +3,14 @@ from .models import User
 from django.contrib.auth.models import Group
 from rest_framework.response import Response 
 from rest_framework import generics, status
-from .serializers import (MyTokenObtainPairSerializer,RegisterEmployeeSerializer ,UserCreateSerializer ,RegisterCompanySerializer)
+from .serializers import (LoginSerializer,RegisterEmployeeSerializer ,UserCreateSerializer ,RegisterCompanySerializer)
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
+from rest_framework.authtoken.models import Token
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated
-# Create your views here.
-
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.none()  # No queryset needed for create-only views
@@ -118,9 +117,26 @@ class RegisterEmployeeView(generics.CreateAPIView):
         return Response(data = response_data, status=status.HTTP_201_CREATED)
          
 ## Login For all 
-class MyTokenObtainPairView(TokenObtainPairView):
-    serializer_class = MyTokenObtainPairSerializer
+class LoginView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            try:
+                token = Token.objects.get(user=user)
+            except Token.DoesNotExist:
+                return Response({'error': 'Token does not exist for this user.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'message': 'Login successful',
+                'email': user.email,
+                'username': user.username,
+                'token': token.key
+            }, 
+            status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
 ## LogOut
 class Logout(APIView):
     def get(self, request):

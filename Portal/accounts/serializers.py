@@ -6,7 +6,11 @@ from accounts.employee import Employee
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework.authtoken.models import Token
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+
 
 User = get_user_model()
 
@@ -129,45 +133,18 @@ class RegisterEmployeeSerializer(serializers.Serializer):
         }
 
 ## login with make acsses and refresh token for al
-from rest_framework.authtoken.models import Token
-class MyTokenObtainPairSerializer(serializers.Serializer):
+class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
-    def validate(self, attrs):
-        email = attrs.get("email")
-        password = attrs.get("password")
-
-        # Check if email is provided
-        if not email:
-            raise serializers.ValidationError("You must provide an email address.")
-
-        # Try to retrieve user by email
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            raise serializers.ValidationError("This email is not registered.")
-
-        # Authenticate the user with email and password
-        if not authenticate(email=email, password=password):
-            raise serializers.ValidationError("Incorrect email or password.")
-
-        # Token generation (assuming Token model from django-rest-framework-simplejwt)
-        token, created = Token.objects.get_or_create(user=user)
-
-        # Include username in the token (optional)
-        token.username = user.username  # Add this line if desired
-
-        return {
-            'token': token.key,
-            'user_id': user.pk,
-            # Include username in the response (optional)
-            'username': user.username  # Add this line if desired
-        }
-
-    @classmethod
-    def get_token(cls, user):
-        token, created = Token.objects.get_or_create(user=user)
-        # Include username in the token (optional)
-        token.username = user.username  # Add this line if desired
-        return token
+    def validate(self, data):
+        email = data.get('email')
+        password = data.get('password')
+        if email and password:
+            user = authenticate(request=self.context.get('request'), email=email, password=password)
+            if user is None:
+                raise serializers.ValidationError('Invalid email or password')
+        else:
+            raise serializers.ValidationError('Must include "email" and "password"')
+        data['user'] = user
+        return data
