@@ -93,8 +93,26 @@ class RegisterEmployeeView(generics.CreateAPIView):
         
         response_data = {
             'status': 'success',
-            'user': user,
-            'employee': employee
+            'message' : 'The user has been created successfully',
+            'user': {
+                'username': user.username,
+                'email': user.email,
+                'role': user.role,
+            },
+            'employee': {
+             "full_name": employee.full_name,
+             "nationality": employee.nationality ,
+             "phone": employee.phone ,
+             "date_of_birth": employee.date_of_birth,
+             "gender": employee.gender,
+             "job_level": employee.job_level ,
+             "edu_level": employee.edu_level,
+             "job_status": employee.job_status ,
+             "work_city": employee.work_city,
+             "job_type": employee.job_type,
+             "experience_year":employee.experience_year,
+             "salary_range" :employee.salary_range,
+            }
         }
 
         return Response(data = response_data, status=status.HTTP_201_CREATED)

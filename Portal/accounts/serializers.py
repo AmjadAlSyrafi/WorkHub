@@ -6,6 +6,7 @@ from accounts.employee import Employee
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.authtoken.models import Token
 
 User = get_user_model()
 
@@ -127,38 +128,46 @@ class RegisterEmployeeSerializer(serializers.Serializer):
             'employee': employee
         }
 
-## login with make acsses and refresh token for all
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+## login with make acsses and refresh token for al
+from rest_framework.authtoken.models import Token
+class MyTokenObtainPairSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
     def validate(self, attrs):
         email = attrs.get("email")
-        username = attrs.get("username")
         password = attrs.get("password")
 
-        # Check if either email or username is provided ..HOA HOA HOA 
-        if not (email or username):
-            raise serializers.ValidationError("You must provide either email or username.")
+        # Check if email is provided
+        if not email:
+            raise serializers.ValidationError("You must provide an email address.")
 
-        # Authenticate the user based on provided email or username ... ma dkt ana  noo oo oom
-        user = None
-        if username:
-            user = authenticate(username=username, password=password)
-        elif email:
-            try:
-                user = User.objects.get(email=email)
-                user = authenticate(email=email, password=password)
-            except User.DoesNotExist:
-                raise serializers.ValidationError("This email is not registered.")
+        # Try to retrieve user by email
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("This email is not registered.")
 
-        # Check if authentication was successful 
-        if user:
-            data = super().validate(attrs)
-            data["username"] = user.username
-            return data 
-        else:
-            raise serializers.ValidationError("Incorrect email/username or password.")
+        # Authenticate the user with email and password
+        if not authenticate(email=email, password=password):
+            raise serializers.ValidationError("Incorrect email or password.")
+
+        # Token generation (assuming Token model from django-rest-framework-simplejwt)
+        token, created = Token.objects.get_or_create(user=user)
+
+        # Include username in the token (optional)
+        token.username = user.username  # Add this line if desired
+
+        return {
+            'token': token.key,
+            'user_id': user.pk,
+            # Include username in the response (optional)
+            'username': user.username  # Add this line if desired
+        }
 
     @classmethod
     def get_token(cls, user):
-        token = super().get_token(user)
-        token["username"] = user.username
+        token, created = Token.objects.get_or_create(user=user)
+        # Include username in the token (optional)
+        token.username = user.username  # Add this line if desired
         return token
