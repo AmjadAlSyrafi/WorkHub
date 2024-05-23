@@ -9,11 +9,12 @@ from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.generics import CreateAPIView
-from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import logout
 # Create your views here.
 
 
 class CreateUserView(generics.CreateAPIView):
+    permission_classes = [AllowAny]
     queryset = User.objects.none()  # No queryset needed for create-only views
     permission_classes = [AllowAny]  # Adjust permissions as needed
     serializer_class = UserCreateSerializer
@@ -29,6 +30,8 @@ class CreateUserView(generics.CreateAPIView):
 
 class RegisterCompanyView(CreateAPIView):
     serializer_class = RegisterCompanySerializer
+    permission_classes = [AllowAny]  # Adjust permissions as needed
+
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -72,6 +75,7 @@ class RegisterCompanyView(CreateAPIView):
 
 class RegisterEmployeeView(generics.CreateAPIView):
    serializer_class = RegisterEmployeeSerializer
+   permission_classes = [AllowAny]
     
    def create(self, request,):
         serializer = self.get_serializer(data=request.data)
@@ -127,7 +131,11 @@ class Logout(APIView):
         try:
             # Check if user is authenticated
             if not request.user.is_authenticated:
-                return Response("User is not authenticated", status=HTTP_401_UNAUTHORIZED)
+                response_data = {
+                    'status': 'Error',
+                    'message': 'User is not authenticated',
+                }
+                return Response(data=response_data, status=status.HTTP_401_UNAUTHORIZED)
 
             # Delete user's authentication token (if applicable)
             # Replace 'auth_token' with the actual field name if using a token library
@@ -137,8 +145,16 @@ class Logout(APIView):
             # Logout the user
             logout(request)
 
-            return Response("User logged out successfully", status=status.HTTP_200_OK)
+            response_data = {
+                'status': 'Success',
+                'message': 'User logged out successfully',
+            }
+            return Response(data=response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
             # Handle any unexpected errors during logout
-            return Response(f"Logout failed: {str(e)}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            response_data = {
+                'status': 'Error',
+                'message': f"Logout failed: {str(e)}",
+            }
+            return Response(data=response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
