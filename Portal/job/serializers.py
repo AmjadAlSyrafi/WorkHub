@@ -19,7 +19,15 @@ class JobSerializer(serializers.ModelSerializer):
         read_only_fields = ['posted_at'] 
         
 
-        
+class JobUpdateSerializer(serializers.ModelSerializer):
+    company = CompanySerializer(read_only=True)
+    class Meta:
+        model = Job
+        fields = [
+            'job_name', 'job_role', 'job_level', 'experience', 
+            'job_type', 'salary', 'gender', 'education', 'about','case', 'company'
+        ]
+          
         
            
         

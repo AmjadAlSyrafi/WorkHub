@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions , status
 from .models import Job
-from .serializers import JobSerializer
-from accounts.permissions import IsCompany
+from .serializers import JobSerializer , JobUpdateSerializer
+from accounts.permissions import *
 from accounts.company import Company
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -69,3 +69,21 @@ class CompanyJobListView(APIView):
         }
         
         return Response(response_data, status=status.HTTP_200_OK)    
+    
+class JobUpdateView(APIView):
+    permission_classes = [permissions.IsAuthenticated , IsCompany , IsJobCreator]
+
+    def patch(self, request, job_id, *args, **kwargs):
+        try:
+            job = Job.objects.get(pk=job_id)
+        except Job.DoesNotExist:
+            return Response({"status": "Error", "message": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = JobUpdateSerializer(job, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "Success", "message": "Job updated successfully.",
+                             "job": serializer.data}, status=status.HTTP_200_OK)
+            
+        return Response({"status": "Error", "message": "Invalid data.",
+                         "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)    
