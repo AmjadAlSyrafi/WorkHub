@@ -1,6 +1,7 @@
 from django.db import models
 from accounts.company import Company
 from django.utils import timezone
+from accounts.models import User
 
 class Job(models.Model):
     JOB_LEVEL_CHOICES = [
@@ -30,3 +31,14 @@ class Job(models.Model):
     
     def __str__(self):
         return self.job_name
+
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    job = models.ForeignKey(Job, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
+    is_favorite = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.job.job_name

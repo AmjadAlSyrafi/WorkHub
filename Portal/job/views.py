@@ -1,13 +1,15 @@
 from rest_framework import generics, permissions , status
 from .models import Job
-from .serializers import JobSerializer , JobUpdateSerializer
+from .serializers import JobSerializer , JobUpdateSerializer, ListFavoriteSerializer
 from accounts.permissions import *
 from accounts.company import Company
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-
-
+from rest_framework import generics, permissions
+from .models import Favorite
+from .serializers import FavoriteSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
 
 class JobCreateView(generics.CreateAPIView):
     queryset = Job.objects.all()
@@ -87,3 +89,39 @@ class JobUpdateView(APIView):
             
         return Response({"status": "Error", "message": "Invalid data.",
                          "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)    
+
+@api_view(['GET'])  
+@permission_classes([IsAuthenticated])
+def favorite_status(request, job_id):
+    user = request.user
+    job = Job.objects.get(id=job_id)
+    try:
+        favorite = Favorite.objects.get(user=user, job_id=job_id)
+        favorite, created = Favorite.objects.get_or_create(user=user, job=job)
+        favorite.is_favorite = not favorite.is_favorite
+        favorite.save()
+        return Response({'is_favorite': favorite.is_favorite}, status=status.HTTP_200_OK)
+    except Favorite.DoesNotExist:
+        return Response({'is_favorite': False}, status=status.HTTP_200_OK)
+
+class FavoriteJobListView(generics.ListAPIView):
+    serializer_class = ListFavoriteSerializer
+    permission_classes = [permissions.IsAuthenticated]  # Ensure the user is authenticated
+
+    def get_queryset(self):
+        # Retrieve the authenticated user
+        user = self.request.user
+        # Get favorite jobs for the user
+        return Favorite.objects.filter(user=user, is_favorite=True)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        response_data = {
+            "status": "Success",
+            "jobs":serializer.data
+        }
+        
+        return Response(serializer.data)
+
+
