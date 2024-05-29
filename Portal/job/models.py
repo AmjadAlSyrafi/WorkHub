@@ -2,6 +2,7 @@ from django.db import models
 from accounts.company import Company
 from django.utils import timezone
 from accounts.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Job(models.Model):
     JOB_LEVEL_CHOICES = [
@@ -28,6 +29,15 @@ class Job(models.Model):
     about = models.TextField()
     posted_at = models.DateTimeField(default=timezone.now)
     case = models.BooleanField(default=True)
+    job_description = models.TextField()
+    job_requirements = models.TextField()
+    languages = models.CharField(max_length=50)
+    age_min = models.PositiveIntegerField(validators=[MinValueValidator(18)], default=18)  
+    age_max = models.PositiveIntegerField(validators=[MaxValueValidator(65)], default=65)
+    city = models.CharField(max_length=50)
+
+    
+    
     
     def __str__(self):
         return self.job_name

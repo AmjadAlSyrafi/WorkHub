@@ -129,7 +129,9 @@ class CreateEmployeeSerializer(serializers.ModelSerializer):
             "work_city",
             "job_type",
             "experience_year",
-            "salary_range" 
+            "salary_range",
+            "address",
+            "job_role"
         )
     def validate(self, attrs):
          experience_year = attrs.get('experience_year')  

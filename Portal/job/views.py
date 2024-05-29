@@ -1,13 +1,11 @@
 from rest_framework import generics, permissions , status
-from .models import Job
+from .models import Job , Favorite
 from .serializers import JobSerializer , JobUpdateSerializer, ListFavoriteSerializer
 from accounts.permissions import *
 from accounts.company import Company
+from accounts.employee import Employee
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import generics, permissions
-from .models import Favorite
-from .serializers import FavoriteSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 
@@ -88,21 +86,27 @@ class JobUpdateView(APIView):
                              "job": serializer.data}, status=status.HTTP_200_OK)
             
         return Response({"status": "Error", "message": "Invalid data.",
-                         "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)    
+                         "Error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)    
 
-@api_view(['GET'])  
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def favorite_status(request, job_id):
     user = request.user
     job = Job.objects.get(id=job_id)
+
     try:
         favorite = Favorite.objects.get(user=user, job_id=job_id)
-        favorite, created = Favorite.objects.get_or_create(user=user, job=job)
-        favorite.is_favorite = not favorite.is_favorite
+        favorite.is_favorite = not favorite.is_favorite  # Toggle favorite status
         favorite.save()
         return Response({'is_favorite': favorite.is_favorite}, status=status.HTTP_200_OK)
+
     except Favorite.DoesNotExist:
-        return Response({'is_favorite': False}, status=status.HTTP_200_OK)
+        favorite, created = Favorite.objects.get_or_create(user=user, job=job)
+        favorite.is_favorite = True  # Set favorite to True for new entry
+        favorite.save()
+        return Response({
+            'is_favorite': favorite.is_favorite}, status=status.HTTP_200_OK)
+
 
 class FavoriteJobListView(generics.ListAPIView):
     serializer_class = ListFavoriteSerializer
@@ -122,6 +126,78 @@ class FavoriteJobListView(generics.ListAPIView):
             "jobs":serializer.data
         }
         
-        return Response(serializer.data)
+        return Response(response_data)  
+    
+    
+class FilteredJobListView(generics.ListAPIView):
+    serializer_class = JobSerializer
+
+    def get_queryset(self):
+        queryset = Job.objects.all()
+        user = self.request.user 
+        
+        employee = Employee.objects.get(user = user)
+        employee_job_role= employee.job_role
+            # Filter by employee's job role by default
+        queryset = queryset.filter(job_role=employee_job_role)
+        
+        if not queryset.exists() :
+            queryset = Job.objects.all()
+            
+        city = self.request.query_params.get('city', None)
+        job_role = self.request.query_params.get('job_role', None)
+        job_type = self.request.query_params.get('job_type', None)
+        job_level = self.request.query_params.get('job_level', None)
+
+
+        if job_role:
+            queryset = Job.objects.all()    
+            queryset = queryset.filter(job_role=job_role)
+        if job_type:
+            queryset = queryset.filter(job_type=job_type)
+        if job_level:
+            queryset = queryset.filter(job_level=job_level)
+        if city:
+            queryset = queryset.filter(city=city)
+        return queryset
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        user = self.request.user 
+        employee = Employee.objects.get(user = user)
+        employee_job_role= employee.job_role
+        if not queryset.exists():
+            return Response({"status": "Error",
+                             "message": "No jobs found matching the criteria"}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        response_data = {
+            "status": "Success",
+            "job_role":employee_job_role,
+            "jobs":serializer.data
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+class AllJobListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated] 
+    serializer_class = JobSerializer
+
+    def get_queryset(self):
+        queryset = Job.objects.all()
+        return queryset.distinct()  # Remove potential duplicates
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+
+        if not queryset.exists():
+            return Response({"status": "Error",
+                             "message": "No jobs found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(queryset, many=True)
+        response_data = {
+            "status": "Success",
+            "jobs": serializer.data
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+    
 
 
