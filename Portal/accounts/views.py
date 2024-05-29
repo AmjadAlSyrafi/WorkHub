@@ -116,6 +116,8 @@ class RegisterEmployeeView(generics.CreateAPIView):
              "job_type": employee.job_type,
              "experience_year":employee.experience_year,
              "salary_range" :employee.salary_range,
+             "job_role" : employee.job_role,
+             "address": employee.address,
             }
         }
 
@@ -127,7 +129,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
     
 ## LogOut
 class Logout(APIView):
-    def get(self, request):
+    def delete(self, request):
         try:
             # Check if user is authenticated
             if not request.user.is_authenticated:

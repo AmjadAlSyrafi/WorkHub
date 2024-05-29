@@ -22,6 +22,10 @@ class Employee(models.Model):
     work_city = models.CharField(max_length=50)
     experience_year = models.IntegerField(validators=[MinValueValidator(0)])
     salary_range = models.IntegerField()
+    address = models.CharField(max_length=50)
+    job_role = models.CharField(max_length=50)
+
+
 
     def __str__(self):
         return self.user.username
