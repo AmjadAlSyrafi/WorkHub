@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions , status
-from .models import Job , Favorite
-from .serializers import JobSerializer , JobUpdateSerializer, ListFavoriteSerializer
+from .models import Job , Favorite, JobApplication
+from .serializers import EmployeeJobApplicationSerializer, JobApplicationSerializer, JobSerializer , JobUpdateSerializer, ListFavoriteSerializer
 from accounts.permissions import *
 from accounts.company import Company
 from accounts.employee import Employee
@@ -8,6 +8,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
+from django.db.models import Q
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
+from rest_framework.pagination import PageNumberPagination
 
 class JobCreateView(generics.CreateAPIView):
     queryset = Job.objects.all()
@@ -200,4 +205,111 @@ class AllJobListView(generics.ListAPIView):
         return Response(response_data, status=status.HTTP_200_OK)
     
 
+class JobSearchView(APIView):
+    def get(self, request, format=None):
+        # Get the search keyword from the request
+        keyword = request.GET.get('keyword')
 
+        # Build the Django query using icontains for fuzzy matching
+        query = Job.objects.filter(case=True)
+        if keyword:
+            query = query.filter(Q(job_name__icontains=keyword))
+
+        # Retrieve and serialize the results (handle no results)
+        jobs = query.all()
+        if not jobs.exists():
+            return Response({'message': 'No jobs found matching your search criteria.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = JobSerializer(jobs, many=True)
+
+        return Response(serializer.data , status=status.HTTP_200_OK)
+    
+class CompanyJobApplicationViewSet(viewsets.ModelViewSet):
+    queryset = JobApplication.objects.all()  
+    serializer_class = JobApplicationSerializer
+    permission_classes = [IsAuthenticated, IsCompany] 
+
+    @action(detail=False, methods=['get'], url_path='my-applications')
+    def list_my_applications(self, request):
+
+        queryset = self.get_queryset()
+        page = PageNumberPagination()
+        paginated_queryset = page.paginate_queryset(queryset, request)
+        serializer = self.get_serializer(paginated_queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['patch'], url_path='update-status')
+    def update_status(self, request, pk=None):
+        instance = self.get_object()
+        status_data = request.data.get('status')
+
+        if status_data not in ['accepted', 'rejected']:
+            return Response({'error': 'Invalid status. Only \'accepted\' or \'rejected\' allowed.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Ensure the application belongs to the company the admin manages
+        if instance.job.company != self.request.user.company:
+            return Response({'error': 'You cannot update applications for another company.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        instance.status = status_data
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class JobApplicationViewSet(viewsets.ModelViewSet):
+    queryset = JobApplication.objects.all()
+    serializer_class = JobApplicationSerializer
+    permission_classes = [IsAuthenticated , IsEmployee] 
+
+    @action(detail=False, methods=['post'], url_path=r'(?P<job_id>\d+)/apply')
+    def create_application(self, request, job_id=None):
+        motivation_letter = request.data.get('motivation_letter')
+        cv = request.FILES.get('cv')
+        user = request.user
+
+        job = get_object_or_404(Job, pk=job_id)
+        employee = get_object_or_404(Employee, user=user)
+        company = job.company
+
+        job_application = JobApplication.objects.create(
+            job=job,
+            employee=employee,
+            company=company,
+            motivation_letter=motivation_letter,
+            cv=cv
+        )
+
+        serializer = self.get_serializer(job_application)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['patch'], url_path='update-application')
+    def update_application(self, request, pk=None):
+        instance = self.get_object()
+
+        if instance.employee.user != request.user:
+            return Response({"error": "You do not have permission to edit this job application."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        serializer = EmployeeJobApplicationSerializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        # Update specific fields
+        instance.cv = request.data.get('cv', instance.cv)  # Update cv if provided in request
+        instance.motivation_letter = request.data.get('motivation_letter', instance.motivation_letter)  # Update motivation_letter if provided in request
+
+        instance.save()
+
+        response_data = {
+            "status": "Your Information Has Been Updated Succesfully",
+            "Your Info": EmployeeJobApplicationSerializer(instance).data
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+    @action(detail=False, methods=['get'], url_path='my-applications')
+    def list_my_applications(self, request):
+
+        queryset = self.get_queryset()
+        page = PageNumberPagination()
+        paginated_queryset = page.paginate_queryset(queryset, request)
+        serializer = self.get_serializer(paginated_queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

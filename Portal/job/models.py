@@ -1,8 +1,9 @@
 from django.db import models
 from accounts.company import Company
+from accounts.employee import Employee
 from django.utils import timezone
 from accounts.models import User
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import FileExtensionValidator, MinValueValidator, MaxValueValidator
 
 class Job(models.Model):
     JOB_LEVEL_CHOICES = [
@@ -52,3 +53,22 @@ class Favorite(models.Model):
 
     def __str__(self):
         return self.job.job_name
+
+
+class JobApplication(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    ]
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    job = models.ForeignKey(Job ,on_delete=models.CASCADE)
+    cv = models.FileField(upload_to='cvs/', validators=[FileExtensionValidator(['pdf'])])
+    motivation_letter = models.TextField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    date_submitted = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.employee.name} - {self.get_status_display()}"

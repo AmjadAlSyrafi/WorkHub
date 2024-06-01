@@ -1,23 +1,39 @@
-from django.shortcuts import render
-from .views import JobCreateView , CompanyJobListView , JobUpdateView , FavoriteJobListView ,favorite_status , FilteredJobListView ,AllJobListView
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    JobApplicationViewSet,
+    JobCreateView, 
+    CompanyJobListView, 
+    JobUpdateView, 
+    JobSearchView, 
+    FavoriteJobListView, 
+    favorite_status, 
+    FilteredJobListView, 
+    AllJobListView, 
+    CompanyJobApplicationViewSet
+)
+
+# Create a router and register our viewsets with it.
+router = DefaultRouter()
+router.register(r'company/job-applications', CompanyJobApplicationViewSet, basename='company-job-application')
+router.register(r'employee/job-applications', JobApplicationViewSet, basename='employee-job-application')
+
 
 
 urlpatterns = [
-    #*******    COMPANY JOB URLS   **********
+    # Company job URLs
     path('create/', JobCreateView.as_view(), name='create-job'),
     path('company-jobs/', CompanyJobListView.as_view(), name='job-list'),
     path('company-jobs/<int:job_id>/', JobUpdateView.as_view(), name='company-job-update'),
-    
-    
 
-    # ******        ee                ***********
+    # Favorite job URLs
     path('favorites/<int:job_id>/', favorite_status, name='favorite_status'),
-    path('favorite-jobs', FavoriteJobListView.as_view(), name='favorite-jobs'),  
-    path('custom', FilteredJobListView.as_view()),
-    path('', AllJobListView.as_view()),
+    path('favorite-jobs/', FavoriteJobListView.as_view(), name='favorite-jobs'),
+    path('custom/', FilteredJobListView.as_view(), name='custom-jobs'),
+    path('search/', JobSearchView.as_view(), name='search-jobs'),
+    path('', AllJobListView.as_view(), name='all-jobs'),
 
-    
-
+    # Include router URLs
+    path('', include(router.urls)),
     
 ]
