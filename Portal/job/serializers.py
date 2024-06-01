@@ -4,6 +4,9 @@ from .models import Favorite
 from accounts.company import Company
 from accounts.models import User
 from accounts.serializers import UserSerializer
+from accounts.employee import Employee
+from accounts.serializers import EmployeeSerializer
+from .models import JobApplication 
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -56,3 +59,21 @@ class ListFavoriteSerializer(serializers.ModelSerializer):
         'job', 
         'is_favorite', 
         ]
+
+class JobApplicationSerializer(serializers.ModelSerializer):
+    employee = EmployeeSerializer(read_only=True)
+    class Meta:
+        model = JobApplication
+        fields = ['id', 'employee','company', 'job', 'cv', 'motivation_letter', 'status', 'date_submitted']
+        read_only_fields = ['employee','company', 'job', 'status', 'date_submitted']
+
+
+class EmployeeJobApplicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobApplication
+        fields = ['cv', 'motivation_letter']
+
+class CompanyJobApplicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobApplication
+        fields = ['status']

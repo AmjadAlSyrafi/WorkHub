@@ -82,7 +82,7 @@ WSGI_APPLICATION = 'Portal.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {     
+""" DATABASES = {     
     'default': {   
         'ENGINE': 'django.db.backends.mysql',   
         'NAME': 'workhub',   
@@ -94,15 +94,15 @@ DATABASES = {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"   
         }   
     }   
-} 
-""""
+}  """
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-"""""
+
 AUTH_USER_MODEL = 'accounts.User'
 
 
@@ -173,3 +173,7 @@ SIMPLE_JWT = {
 
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
