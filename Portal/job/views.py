@@ -212,6 +212,7 @@ class JobSearchView(APIView):
 
         # Build the Django query using icontains for fuzzy matching
         query = Job.objects.filter(case=True)
+        
         if keyword:
             query = query.filter(Q(job_name__icontains=keyword))
 
@@ -220,9 +221,11 @@ class JobSearchView(APIView):
         if not jobs.exists():
             return Response({'message': 'No jobs found matching your search criteria.'}, status=status.HTTP_404_NOT_FOUND)
         serializer = JobSerializer(jobs, many=True)
-
-        return Response(serializer.data , status=status.HTTP_200_OK)
-    
+        response_data = {
+            "status": "Success",
+            "jobs": serializer.data
+        }
+        return Response(response_data, status=status.HTTP_200_OK)    
 class CompanyJobApplicationViewSet(viewsets.ModelViewSet):
     queryset = JobApplication.objects.all()  
     serializer_class = JobApplicationSerializer
@@ -241,21 +244,26 @@ class CompanyJobApplicationViewSet(viewsets.ModelViewSet):
     def update_status(self, request, pk=None):
         instance = self.get_object()
         status_data = request.data.get('status')
-
         if status_data not in ['accepted', 'rejected']:
             return Response({'error': 'Invalid status. Only \'accepted\' or \'rejected\' allowed.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         # Ensure the application belongs to the company the admin manages
         if instance.job.company != self.request.user.company:
-            return Response({'error': 'You cannot update applications for another company.'},
+            return Response({
+                'status' : 'error',
+                'message': 'You cannot update applications for another company.'},
                             status=status.HTTP_403_FORBIDDEN)
 
         instance.status = status_data
         instance.save()
         serializer = self.get_serializer(instance)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
+        response_data = {
+            "status": "Success",
+            'meesage' : 'status updataed successfully',
+            "data": serializer.data
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
 class JobApplicationViewSet(viewsets.ModelViewSet):
     queryset = JobApplication.objects.all()
@@ -281,7 +289,11 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         )
 
         serializer = self.get_serializer(job_application)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        response_data = {
+            "status": "Success",
+            "message" : "Your apply has been submited!"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['patch'], url_path='update-application')
     def update_application(self, request, pk=None):
@@ -301,8 +313,9 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         instance.save()
 
         response_data = {
-            "status": "Your Information Has Been Updated Succesfully",
-            "Your Info": EmployeeJobApplicationSerializer(instance).data
+            "status": "Success",
+            "message" : "Your Information Has Been Updated Succesfully",
+            "Data": EmployeeJobApplicationSerializer(instance).data
         }
         return Response(response_data, status=status.HTTP_200_OK)
     @action(detail=False, methods=['get'], url_path='my-applications')
@@ -310,6 +323,7 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
 
         queryset = self.get_queryset()
         page = PageNumberPagination()
+        
         paginated_queryset = page.paginate_queryset(queryset, request)
         serializer = self.get_serializer(paginated_queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
