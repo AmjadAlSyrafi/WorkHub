@@ -82,7 +82,7 @@ WSGI_APPLICATION = 'Portal.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-""" DATABASES = {     
+DATABASES = {     
     'default': {   
         'ENGINE': 'django.db.backends.mysql',   
         'NAME': 'workhub',   
@@ -94,15 +94,15 @@ WSGI_APPLICATION = 'Portal.wsgi.application'
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"   
         }   
     }   
-}  """
-
+}
+""""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+"""
 AUTH_USER_MODEL = 'accounts.User'
 
 
@@ -153,6 +153,9 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
+    
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 5,
      
      'DEFAULT_AUTHENTICATION_CLASSES': (
          'rest_framework_simplejwt.authentication.JWTAuthentication',

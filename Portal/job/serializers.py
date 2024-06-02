@@ -20,7 +20,7 @@ class JobSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
     class Meta:
         model = Job
-        fields = [
+        fields = ['id',
             'job_name', 'job_role', 'job_level', 'experience','languages',
             'job_type', 'salary', 'gender', 'education','city', 'about','case','age_min',
             'age_max','job_description' ,'job_requirements' ,  'company'
@@ -61,7 +61,10 @@ class ListFavoriteSerializer(serializers.ModelSerializer):
         ]
 
 class JobApplicationSerializer(serializers.ModelSerializer):
+    company = CompanySerializer(read_only=True)
     employee = EmployeeSerializer(read_only=True)
+    job = JobSerializer(read_only=True)
+
     class Meta:
         model = JobApplication
         fields = ['id', 'employee','company', 'job', 'cv', 'motivation_letter', 'status', 'date_submitted']
