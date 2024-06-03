@@ -1,6 +1,8 @@
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator ,MaxValueValidator
 from django.contrib.auth import get_user_model
+from accounts.company import Company    
+from django.db.models import Avg
 
 User = get_user_model()
 
@@ -24,8 +26,11 @@ class Employee(models.Model):
     salary_range = models.IntegerField()
     address = models.CharField(max_length=50)
     job_role = models.CharField(max_length=50)
+    average_rating = models.FloatField(default=0.0)
 
-
+    def update_average_rating(self):
+        self.average_rating = self.ratings.aggregate(Avg('rating'))['rating__avg'] or 0.0
+        self.save()    
 
     def __str__(self):
         return self.user.username

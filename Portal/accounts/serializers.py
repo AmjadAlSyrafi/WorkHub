@@ -3,10 +3,10 @@ from rest_framework import serializers
 from .models import User
 from accounts.company import Company
 from accounts.employee import Employee
-from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from accounts.company_rating import CompanyRating
+from accounts.employee_rating import EmployeeRating
 
 
 User = get_user_model()
@@ -20,6 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
+            'id',
             "username",
             "email",
             "role",
@@ -205,3 +206,15 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['username'] = user.username
         return token
 
+
+class CompanyRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyRating
+        fields = ['company','employee','rating', 'comment']
+        
+
+class EmployeeRatingSerializer(serializers.ModelSerializer):
+    company = CompanySerializer(read_only=True)
+    class Meta:
+        model = EmployeeRating
+        fields = ['employee', 'rating', 'comment']
