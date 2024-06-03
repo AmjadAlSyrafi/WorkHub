@@ -6,10 +6,19 @@ from rest_framework import generics, status
 from .serializers import (MyTokenObtainPairSerializer,RegisterEmployeeSerializer ,UserCreateSerializer ,RegisterCompanySerializer)
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny ,IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.generics import CreateAPIView
 from django.contrib.auth import logout
+from accounts.company_rating import CompanyRating
+from accounts.employee_rating import EmployeeRating
+from .serializers import CompanyRatingSerializer, EmployeeRatingSerializer , CompanySerializer
+from rest_framework.decorators import action
+from accounts.company import Company
+from rest_framework import viewsets
+from accounts.permissions import CanRateCompany, CanRateEmployee
+from job.models import JobApplication
+from accounts.employee import Employee
 # Create your views here.
 
 
@@ -159,4 +168,165 @@ class Logout(APIView):
                 'status': 'Error',
                 'message': f"Logout failed: {str(e)}",
             }
-            return Response(data=response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+            return Response(data=response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
+        
+        
+class CompanyRatingViewSet(viewsets.ModelViewSet):
+    queryset = CompanyRating.objects.all()
+    serializer_class = CompanyRatingSerializer
+    permission_classes = [IsAuthenticated , CanRateCompany]
+    
+    def list(self, request):
+        company_id = request.query_params.get('company_id')
+        
+        if company_id:
+            ratings = self.get_queryset().filter(company_id=company_id)
+        else:
+            response_data = {
+                'status': 'error',
+                'message' : 'Comapny ID most be in the query params'
+            } 
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+        ratings = self.get_queryset().filter(company_id=company_id)        
+        serializer = self.get_serializer(ratings, many=True)
+        response_data = {
+                'status': 'success',
+                'data' : serializer.data
+            }        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    def create(self, request, *args, **kwargs):
+        try:
+            user = request.user.employee
+            company_id = request.data.get('company')
+            rating_data = request.data.get('rating')
+            comment_data = request.data.get('comment')
+
+            if rating_data is None or comment_data is None:
+                return Response({
+                    'status': 'error',
+                    'message': 'Rating and comment are required fields'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Ensure the rating is between 1 and 5
+            if not (1 <= rating_data <= 5):
+                return Response({
+                    'status': 'error',
+                    'message': 'Rating must be between 1 and 5'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            # Check if the employee has already rated this company
+            try:
+                company_rating = CompanyRating.objects.get(employee=user, company_id=company_id)
+                company_rating.rating = rating_data
+                company_rating.comment = comment_data
+                company_rating.save()
+
+                response_data = {
+                    'status': 'success',
+                    'message': 'Your review has been updated'
+                }
+
+            except CompanyRating.DoesNotExist:
+                CompanyRating.objects.create(
+                    employee=user, rating=rating_data, comment=comment_data, company_id=company_id
+                )
+
+                response_data = {
+                    'status': 'success',
+                    'message': 'Your review has been submitted'
+                }
+
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except JobApplication.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'An error occurred while checking your application status. Please try again later.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+from django.shortcuts import get_object_or_404
+
+
+class EmployeeRatingViewSet(viewsets.ModelViewSet):
+    queryset = EmployeeRating.objects.all()
+    serializer_class = EmployeeRatingSerializer
+    permission_classes = [IsAuthenticated , CanRateEmployee]
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        company = get_object_or_404(Company, user=user)
+
+        # Get rating and comment data
+        rating_data = request.data.get('rating')
+        comment_data = request.data.get('comment')
+        employee_id = request.data.get('employee')
+
+        # Check for required fields (rating and comment)
+        if rating_data is None or comment_data is None:
+                return Response({
+                    'status': 'error',
+                    'message': 'Rating and comment are required fields'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Ensure the rating is between 1 and 5
+        if not (1 <= rating_data <= 5):
+            return Response({
+                'status': 'error',
+                'message': 'Rating must be between 1 and 5'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Ensure the employee exists
+        employee = get_object_or_404(Employee, id=employee_id)
+        try:
+            employee_rating = EmployeeRating.objects.get(employee=employee, company=company)
+            employee_rating.rating = rating_data
+            employee_rating.comment = comment_data
+            employee_rating.save()
+
+            response_data = {
+                'status': 'success',
+                'message': 'Your review has been updated'
+            }
+
+        except EmployeeRating.DoesNotExist:
+        # Create the rating object
+            EmployeeRating.objects.create(
+            company=company,
+            rating=rating_data,
+            comment=comment_data,
+            employee=employee
+        )
+
+        response_data = {
+            'status': 'Success',
+            'message': 'Your review has been submitted'
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+    def list(self, request):
+        employee_id = request.query_params.get('employee_id')
+
+        if employee_id:
+            ratings = self.get_queryset().filter(employee_id=employee_id)
+        else:
+            response_data = {
+                'status': 'error',
+                'message': 'Employee ID must be in the query params'
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(ratings, many=True)
+        response_data = {
+            'status': 'success',
+            'data': serializer.data
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+class CompanyViewSet(viewsets.ModelViewSet):
+    queryset = Company.objects.all()
+    serializer_class = CompanySerializer
+    permission_classes = [IsAuthenticated]               
