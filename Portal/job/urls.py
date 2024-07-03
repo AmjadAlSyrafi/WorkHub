@@ -10,13 +10,17 @@ from .views import (
     favorite_status, 
     FilteredJobListView, 
     AllJobListView, 
-    CompanyJobApplicationViewSet
+    CompanyJobApplicationViewSet,
+    JobForAdmin,
+    JobAppForAdmin
 )
 
 # Create a router and register our viewsets with it.
 router = DefaultRouter()
 router.register(r'company/job-applications', CompanyJobApplicationViewSet, basename='company-job-application')
 router.register(r'employee/job-applications', JobApplicationViewSet, basename='employee-job-application')
+router.register(r'admin/job', JobForAdmin, basename='admin-job')
+router.register(r'admin/job-app', JobAppForAdmin, basename='admin-job-app')
 
 
 

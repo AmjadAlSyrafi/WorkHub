@@ -12,13 +12,18 @@ from rest_framework.generics import CreateAPIView
 from django.contrib.auth import logout
 from accounts.company_rating import CompanyRating
 from accounts.employee_rating import EmployeeRating
-from .serializers import CompanyRatingSerializer, EmployeeRatingSerializer , CompanySerializer
+from .serializers import CompanyRatingSerializer, EmployeeRatingSerializer , CompanySerializer ,EmployeeSerializer, CompanyProfileSerializer
 from rest_framework.decorators import action
 from accounts.company import Company
 from rest_framework import viewsets
 from accounts.permissions import CanRateCompany, CanRateEmployee
-from job.models import JobApplication
+from job.models import JobApplication , Job
 from accounts.employee import Employee
+from job.serializers import JobSerializer
+from accounts.permissions import *
+from django.http import HttpResponse
+
+
 # Create your views here.
 
 
@@ -325,8 +330,147 @@ class EmployeeRatingViewSet(viewsets.ModelViewSet):
             'data': serializer.data
         }
         return Response(response_data, status=status.HTTP_200_OK)
+      
+"...............Company Profile............."    
     
+class CompanyProfileViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['get'], url_path=r'(?P<company_id>\d+)')
+    def retrieve_profile(self, request, company_id=None):
+        company = get_object_or_404(Company, pk=company_id)
+        company_serializer = CompanyProfileSerializer(company , context={'request': request})
+
+        jobs = Job.objects.filter(company=company)
+        jobs_serializer = JobSerializer(jobs, many=True)
+
+        response_data = {
+            'status': 'Success',
+            'company': company_serializer.data,
+            'jobs': jobs_serializer.data,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], url_path=r'(?P<company_id>\d+)/profile')
+    def create_or_update_profile(self, request, company_id=None):
+        company = get_object_or_404(Company, pk=company_id)
+        user = request.user
+
+        # Check if the user is authorized to update the profile
+        if company.user != user:
+            return Response({
+                'status': 'error',
+                'message': 'You are not authorized to update this company profile.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Update company profile
+        company_serializer = CompanyProfileSerializer(company, data=request.data, partial=True , context={'request': request})
+        if company_serializer.is_valid():
+            company_serializer.save()
+        else:
+            return Response(company_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        response_data = {
+            'status': 'Success',
+            'message': 'Company profile updated successfully.',
+            'company': company_serializer.data,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)   
+    
+"...............Employee Profile..........."    
+class EmployeeProfileViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['get'], url_path=r'(?P<employee_id>\d+)')
+    def retrieve_profile(self, request, employee_id=None):
+        employee = get_object_or_404(Employee, pk=employee_id)
+        employee_serializer = EmployeeSerializer(employee , context={'request': request})
+        
+        response_data = {
+            'status': 'Success',
+            'employee': employee_serializer.data,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['patch'], url_path=r'(?P<employee_id>\d+)/update')
+    def update_profile(self, request, employee_id=None):
+        employee = get_object_or_404(Employee, pk=employee_id)
+        user = request.user
+
+        if employee.user != user:
+            return Response({
+                'status': 'error',
+                'message': 'You are not authorized to update this profile.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        employee_serializer = EmployeeSerializer(employee, data=request.data, partial=True , context={'request': request})
+        if employee_serializer.is_valid():
+            employee_serializer.save()
+            response_data = {
+                'status': 'Success',
+                'message': 'Profile updated successfully.',
+                'employee': employee_serializer.data,
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        else:
+            return Response(employee_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+".................Dashboard................."
 class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all()
     serializer_class = CompanySerializer
-    permission_classes = [IsAuthenticated]               
+    permission_classes = [IsAuthenticated]     
+    
+class EmployeeViewSet(viewsets.ModelViewSet):
+    queryset = Employee.objects.all()
+    serializer_class = EmployeeSerializer
+    permission_classes = [IsAuthenticated]
+    
+    
+def home(request):
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome Home</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                background-color: #f0f0f0;
+            }
+            .container {
+                text-align: center;
+                background: white;
+                padding: 2em;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+            h1 {
+                color: #333;
+            }
+            p {
+                color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Welcome to WorkHub</h1>
+            <p>Your journey towards a better work experience starts here.</p>
+        </div>
+    </body>
+    </html>
+    """
+    return HttpResponse(html_content)
+
+

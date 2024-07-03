@@ -13,6 +13,8 @@ class Company(models.Model):
     field_work = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=15)
     average_rating = models.FloatField(default=0.0) 
+    profile_picture = models.ImageField(upload_to='company_pics/', blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
     
        
     def update_average_rating(self):

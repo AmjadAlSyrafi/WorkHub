@@ -27,6 +27,8 @@ class Employee(models.Model):
     address = models.CharField(max_length=50)
     job_role = models.CharField(max_length=50)
     average_rating = models.FloatField(default=0.0)
+    profile_picture = models.ImageField(upload_to='employee_pics/', blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
 
     def update_average_rating(self):
         self.average_rating = self.ratings.aggregate(Avg('rating'))['rating__avg'] or 0.0

@@ -29,7 +29,7 @@ class Job(models.Model):
     education = models.CharField(max_length=100)
     about = models.TextField()
     posted_at = models.DateTimeField(default=timezone.now)
-    case = models.BooleanField(default=True)
+    active = models.BooleanField(default=True)
     job_description = models.TextField()
     job_requirements = models.TextField()
     languages = models.CharField(max_length=50)

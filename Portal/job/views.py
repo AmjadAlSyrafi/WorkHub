@@ -237,7 +237,7 @@ class CompanyJobApplicationViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         page = PageNumberPagination()
         paginated_queryset = page.paginate_queryset(queryset, request)
-        serializer = self.get_serializer(paginated_queryset, many=True)
+        serializer = self.get_serializer(paginated_queryset, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['patch'], url_path='update-status')
@@ -318,12 +318,32 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
             "Data": EmployeeJobApplicationSerializer(instance).data
         }
         return Response(response_data, status=status.HTTP_200_OK)
+    
     @action(detail=False, methods=['get'], url_path='my-applications')
     def list_my_applications(self, request):
+        user = request.user
+        employee = get_object_or_404(Employee, user=user)
 
-        queryset = self.get_queryset()
+        # Filter job applications for the logged-in user
+        queryset = self.get_queryset().filter(employee=employee)
+
+        # Pagination
         page = PageNumberPagination()
-        
         paginated_queryset = page.paginate_queryset(queryset, request)
-        serializer = self.get_serializer(paginated_queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        # Serialization
+        serializer = self.get_serializer(paginated_queryset, many=True, context={'request': request})
+        
+        return page.get_paginated_response(serializer.data)
+    
+    
+class JobForAdmin(viewsets.ModelViewSet):
+    queryset = Job.objects.all()
+    serializer_class = JobSerializer
+    permission_classes = [IsAuthenticated]    
+    
+    
+class JobAppForAdmin(viewsets.ModelViewSet):
+    queryset = JobApplication.objects.all()
+    serializer_class = JobApplicationSerializer
+    permission_classes = [IsAuthenticated]
