@@ -32,6 +32,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
+        profile_picture = serializers.ImageField(max_length=None, use_url=True)        
         model = Employee
         fields = (
             '__all__'
@@ -52,13 +53,20 @@ class CreateCompanySerializer(serializers.ModelSerializer):
         
 class CompanySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-
+    profile_picture = serializers.ImageField(max_length=None, use_url=True)        
     class Meta:
         model = Company
         fields = (
             '__all__'
         )
 
+class CompanyProfileSerializer(serializers.ModelSerializer):
+    average_rating = serializers.ReadOnlyField()
+    profile_picture = serializers.ImageField(max_length=None, use_url=True)
+    class Meta:
+        model = Company
+        fields = ['bio', 'average_rating','profile_picture'] 
+        
 ##Company
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -195,6 +203,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             'access': str(refresh.access_token),
             'user_id': user.pk,
             'username': user.username,
+            'role': user.role,
             'email': user.email
         }
 
@@ -217,4 +226,4 @@ class EmployeeRatingSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
     class Meta:
         model = EmployeeRating
-        fields = ['employee', 'rating', 'comment']
+        fields = ['employee','company', 'rating', 'comment']
