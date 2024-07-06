@@ -19,13 +19,22 @@ class CompanySerializer(serializers.ModelSerializer):
 class JobSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
     posted_at = serializers.ReadOnlyField()
+    is_favorite = serializers.SerializerMethodField()
+
     class Meta:
         model = Job
-        fields = ['id',
-            'job_name', 'job_role', 'job_level', 'experience','languages',
-            'job_type', 'salary', 'gender', 'education','city', 'about','active','age_min',
-            'age_max','job_description' ,'job_requirements' ,  'company','posted_at'
+        fields = [
+            'id', 'job_name', 'job_role', 'job_level', 'experience', 'languages',
+            'job_type', 'salary', 'gender', 'education', 'city', 'about', 'active', 
+            'age_min', 'age_max', 'job_description', 'job_requirements', 'company', 
+            'posted_at', 'is_favorite'
         ]
+
+    def get_is_favorite(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            return Favorite.objects.filter(user=user, job=obj).exists()
+        return False
         
 
 class JobUpdateSerializer(serializers.ModelSerializer):
@@ -43,11 +52,9 @@ class JobUpdateSerializer(serializers.ModelSerializer):
         
 
 class FavoriteSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
     class Meta:
         model = Favorite
         fields = [
-        'user',
         'job', 
         'is_favorite', 
         'created_at',
