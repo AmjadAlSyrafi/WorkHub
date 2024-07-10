@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions , status
 from .models import Job , Favorite, JobApplication
-from .serializers import EmployeeJobApplicationSerializer, JobApplicationSerializer, JobSerializer , JobUpdateSerializer, ListFavoriteSerializer
+from .serializers import( EmployeeJobApplicationSerializer, JobApplicationSerializer,
+                          JobSerializer , JobUpdateSerializer, ListFavoriteSerializer , JobbSerializer)
 from accounts.permissions import *
 from accounts.company import Company
 from accounts.employee import Employee
@@ -40,7 +41,7 @@ class JobCreateView(generics.CreateAPIView):
             response_data = {
                 "status": "Success",
                 "message": "Job created successfully.",
-                "job": JobSerializer(job).data
+                "job": JobbSerializer(job).data
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
         
@@ -66,7 +67,7 @@ class CompanyJobListView(APIView):
 
         # Filter jobs by the company
         jobs = Job.objects.filter(company=company)
-        serializer = JobSerializer(jobs, many=True)
+        serializer = JobbSerializer(jobs, many=True)
         
         response_data = {
             "status": "Success",

@@ -15,7 +15,18 @@ class CompanySerializer(serializers.ModelSerializer):
         fields = ['company_name', 'location']
 
 
-
+class JobbSerializer(serializers.ModelSerializer):
+    company = CompanySerializer(read_only=True)
+    posted_at = serializers.ReadOnlyField()
+    class Meta:
+        model = Job
+        fields = [
+            'id', 'job_name', 'job_role', 'job_level', 'experience', 'languages',
+            'job_type', 'salary', 'gender', 'education', 'city', 'about', 'active', 
+            'age_min', 'age_max', 'job_description', 'job_requirements', 'company', 
+            'posted_at'
+        ]
+        
 class JobSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
     posted_at = serializers.ReadOnlyField()
