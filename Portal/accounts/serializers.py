@@ -198,7 +198,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Generate tokens using the default mechanism
         refresh = self.get_token(user)
 
-        return {
+        # Prepare the response data
+        response_data = {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
             'user_id': user.pk,
@@ -207,6 +208,16 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             'email': user.email
         }
 
+        # If the user role is Employee, include the employee_id
+        if user.role == 'Employee': 
+            try:
+                employee = Employee.objects.get(user=user)
+                response_data['employee_id'] = employee.id
+            except Employee.DoesNotExist:
+                raise serializers.ValidationError("Employee data not found for the user.")
+
+        return response_data
+    
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
