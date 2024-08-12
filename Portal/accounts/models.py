@@ -19,6 +19,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     role = models.CharField(choices=Role.choices, max_length=10, default=Role.EMPLOYEE)
     reset_password_token = models.CharField(max_length=50, blank=True, default='')
     reset_password_expire = models.DateTimeField(blank=True, null=True)
+    otp_code = models.IntegerField(blank=True, null=True)
 
     groups = models.ManyToManyField(
         'auth.Group',
@@ -38,7 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = [""]
+    REQUIRED_FIELDS = ['']
 
     def __str__(self):
         return self.email

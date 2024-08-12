@@ -7,6 +7,9 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from accounts.company_rating import CompanyRating
 from accounts.employee_rating import EmployeeRating
+from django.core.mail import send_mail
+from django.conf import settings
+import random
 
 
 User = get_user_model()
@@ -238,3 +241,51 @@ class EmployeeRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeRating
         fields = ['employee','company', 'rating', 'comment']
+        
+        
+class CustomPasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            self.user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid email address")
+        return value
+
+    def save(self):
+        user = self.user
+        otp = random.randint(100000, 999999)
+        user.otp_code = otp
+        user.save()
+        
+        subject = 'Your WorkHub OTP Code for Password Reset'
+        message = f'Your OTP code is {otp}. Please use this code to reset your password. WorkHub Team!.'
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = [user.email]
+        
+        send_mail(subject, message, from_email, recipient_list)        
+        
+        
+class OTPVerificationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp_code = serializers.IntegerField()
+    new_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        try:
+            user = User.objects.get(email=data['email'])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid email address")
+
+        if user.otp_code != data['otp_code']:
+            raise serializers.ValidationError("Invalid OTP code")
+
+        return data
+
+    def save(self):
+        user = User.objects.get(email=self.validated_data['email'])
+        user.set_password(self.validated_data['new_password'])
+        user.otp_code = None  # Clear the OTP code after use
+        user.save()
+        return user        

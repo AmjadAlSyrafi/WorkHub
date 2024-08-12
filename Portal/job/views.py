@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions , status
 from .models import Job , Favorite, JobApplication
-from .serializers import( EmployeeJobApplicationSerializer, JobApplicationSerializer,
+from .serializers import( EmployeeJobApplicationSerializer, JobApplicationSerializer,JobbApplicationSerializer ,
                           JobSerializer , JobUpdateSerializer, ListFavoriteSerializer , JobbSerializer)
 from accounts.permissions import *
 from accounts.company import Company
@@ -77,7 +77,7 @@ class CompanyJobListView(APIView):
         return Response(response_data, status=status.HTTP_200_OK)    
     
 class JobUpdateView(APIView):
-    permission_classes = [permissions.IsAuthenticated , IsCompany , IsJobCreator]
+    permission_classes = [permissions.IsAuthenticated, IsCompany, IsJobCreator]
 
     def patch(self, request, job_id, *args, **kwargs):
         try:
@@ -92,7 +92,16 @@ class JobUpdateView(APIView):
                              "job": serializer.data}, status=status.HTTP_200_OK)
             
         return Response({"status": "Error", "message": "Invalid data.",
-                         "Error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)    
+                         "Error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, job_id, *args, **kwargs):
+        try:
+            job = Job.objects.get(pk=job_id)
+        except Job.DoesNotExist:
+            return Response({"status": "Error", "message": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        job.delete()
+        return Response({"status": "Success", "message": "Job deleted successfully."}, status=status.HTTP_200_OK)   
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -137,6 +146,7 @@ class FavoriteJobListView(generics.ListAPIView):
     
 class FilteredJobListView(generics.ListAPIView):
     serializer_class = JobSerializer
+    permission_classes = [IsAuthenticated , IsEmployee] 
 
     def get_queryset(self):
         queryset = Job.objects.all()
@@ -178,8 +188,8 @@ class FilteredJobListView(generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         response_data = {
             "status": "Success",
-            "job_role":employee_job_role,
-            "jobs":serializer.data
+            "job_role": employee_job_role,
+            "jobs": serializer.data
         }
         return Response(response_data, status=status.HTTP_200_OK)
     
@@ -207,12 +217,14 @@ class AllJobListView(generics.ListAPIView):
     
 
 class JobSearchView(APIView):
+    permission_classes = [IsAuthenticated] 
+
     def get(self, request, format=None):
         # Get the search keyword from the request
         keyword = request.GET.get('keyword')
 
         # Build the Django query using icontains for fuzzy matching
-        query = Job.objects.filter(case=True)
+        query = Job.objects.filter(active=True)
         
         if keyword:
             query = query.filter(Q(job_name__icontains=keyword))
@@ -221,7 +233,7 @@ class JobSearchView(APIView):
         jobs = query.all()
         if not jobs.exists():
             return Response({'message': 'No jobs found matching your search criteria.'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = JobSerializer(jobs, many=True)
+        serializer = JobbSerializer(jobs, many=True)
         response_data = {
             "status": "Success",
             "jobs": serializer.data
@@ -232,13 +244,18 @@ class CompanyJobApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = JobApplicationSerializer
     permission_classes = [IsAuthenticated, IsCompany] 
 
-    @action(detail=False, methods=['get'], url_path='my-applications')
-    def list_my_applications(self, request):
-
-        queryset = self.get_queryset()
+    def list(self, request):
+        company = self.request.user.company
+        queryset = JobApplication.objects.filter(company=company)
+        # Check if there are no job applications
+        if not queryset.exists():
+            return Response(
+                {"message": "No job applications found."},
+                status=status.HTTP_404_NOT_FOUND
+            )            
         page = PageNumberPagination()
         paginated_queryset = page.paginate_queryset(queryset, request)
-        serializer = self.get_serializer(paginated_queryset, many=True, context={'request': request})
+        serializer = JobbApplicationSerializer(paginated_queryset, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['patch'], url_path='update-status')
@@ -340,11 +357,11 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
     
 class JobForAdmin(viewsets.ModelViewSet):
     queryset = Job.objects.all()
-    serializer_class = JobSerializer
+    serializer_class = JobbSerializer
     permission_classes = [IsAuthenticated]    
     
     
 class JobAppForAdmin(viewsets.ModelViewSet):
     queryset = JobApplication.objects.all()
-    serializer_class = JobApplicationSerializer
+    serializer_class = JobbApplicationSerializer
     permission_classes = [IsAuthenticated]

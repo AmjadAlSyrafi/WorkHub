@@ -180,3 +180,24 @@ SIMPLE_JWT = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+
+DJOSER = {
+    'PASSWORD_RESET_CONFIRM_URL': '#/password/reset/confirm/{uid}/{token}',
+    'USERNAME_RESET_CONFIRM_URL': '#/username/reset/confirm/{uid}/{token}',
+    'ACTIVATION_URL': '#/activate/{uid}/{token}',
+    'SEND_ACTIVATION_EMAIL': True,
+    'SERIALIZERS': {
+        'password_reset': 'accounts.serializers.CustomPasswordResetSerializer',
+    },
+    'EMAIL': {
+        'password_reset': 'accounts.views.CustomPasswordResetView',
+    },}
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587  # Port for your SMTP server
+EMAIL_USE_TLS = True  # Use TLS
+EMAIL_HOST_USER = 'amjode3105@gmail.com'
+EMAIL_HOST_PASSWORD = 'vdsv etzf mhgu iywv'
+DEFAULT_FROM_EMAIL = 'webmaster@localhost'
