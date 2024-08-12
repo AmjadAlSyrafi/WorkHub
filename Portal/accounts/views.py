@@ -3,7 +3,7 @@ from .models import User
 from django.contrib.auth.models import Group
 from rest_framework.response import Response 
 from rest_framework import generics, status
-from .serializers import (MyTokenObtainPairSerializer,RegisterEmployeeSerializer ,UserCreateSerializer ,RegisterCompanySerializer)
+from .serializers import (MyTokenObtainPairSerializer,RegisterEmployeeSerializer ,UserCreateSerializer,OTPVerificationSerializer ,CustomPasswordResetSerializer,RegisterCompanySerializer)
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics
 from rest_framework.permissions import AllowAny ,IsAuthenticated
@@ -19,9 +19,11 @@ from rest_framework import viewsets
 from accounts.permissions import CanRateCompany, CanRateEmployee
 from job.models import JobApplication , Job
 from accounts.employee import Employee
-from job.serializers import JobSerializer
+from job.serializers import JobSerializer , JobbSerializer
 from accounts.permissions import *
 from django.http import HttpResponse
+from rest_framework import serializers
+
 
 
 # Create your views here.
@@ -342,7 +344,7 @@ class CompanyProfileViewSet(viewsets.ViewSet):
         company_serializer = CompanyProfileSerializer(company , context={'request': request})
 
         jobs = Job.objects.filter(company=company)
-        jobs_serializer = JobSerializer(jobs, many=True)
+        jobs_serializer = JobbSerializer(jobs, many=True)
 
         response_data = {
             'status': 'Success',
@@ -473,4 +475,24 @@ def home(request):
     """
     return HttpResponse(html_content)
 
+class CustomPasswordResetView(generics.GenericAPIView):
+    serializer_class = CustomPasswordResetSerializer
 
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "OTP code has been sent to your email."}, status=status.HTTP_200_OK)
+    
+class OTPVerificationView(generics.GenericAPIView):
+    serializer_class = OTPVerificationSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except serializers.ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Perform the OTP verification and any additional actions here
+        return Response({"detail": "OTP verified successfully."}, status=status.HTTP_200_OK)   

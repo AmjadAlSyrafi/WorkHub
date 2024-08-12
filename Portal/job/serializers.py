@@ -31,14 +31,15 @@ class JobSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
     posted_at = serializers.ReadOnlyField()
     is_favorite = serializers.SerializerMethodField()
-
+    job_applied = serializers.SerializerMethodField()
+    
     class Meta:
         model = Job
         fields = [
             'id', 'job_name', 'job_role', 'job_level', 'experience', 'languages',
             'job_type', 'salary', 'gender', 'education', 'city', 'about', 'active', 
             'age_min', 'age_max', 'job_description', 'job_requirements', 'company', 
-            'posted_at', 'is_favorite'
+            'posted_at', 'is_favorite','job_applied'
         ]
 
     def get_is_favorite(self, obj):
@@ -46,7 +47,14 @@ class JobSerializer(serializers.ModelSerializer):
         if user.is_authenticated:
             return Favorite.objects.filter(user=user, job=obj).exists()
         return False
-        
+    
+    def get_job_applied(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            employee = Employee.objects.get(user=user)
+            return JobApplication.objects.filter(employee=employee,job=obj,).exists()
+        return False
+
 
 class JobUpdateSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
@@ -86,9 +94,17 @@ class JobApplicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JobApplication
-        fields = ['id', 'employee','job', 'cv', 'motivation_letter', 'status', 'date_submitted']
+        fields = ['id', 'employee','job', 'cv', 'motivation_letter', 'status', 'date_submitted','interview_date','meeting_link',]
         read_only_fields = ['employee','company', 'job', 'status', 'date_submitted']
 
+class JobbApplicationSerializer(serializers.ModelSerializer):
+    employee = EmployeeSerializer(read_only=True)
+    job = JobbSerializer(read_only=True)
+
+    class Meta:
+        model = JobApplication
+        fields = ['id', 'employee','job', 'cv', 'motivation_letter', 'status', 'date_submitted','interview_date','meeting_link',]
+        read_only_fields = ['employee','company', 'job', 'status', 'date_submitted']
 
 class EmployeeJobApplicationSerializer(serializers.ModelSerializer):
     class Meta:

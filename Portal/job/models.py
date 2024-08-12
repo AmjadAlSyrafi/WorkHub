@@ -69,6 +69,8 @@ class JobApplication(models.Model):
     motivation_letter = models.TextField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     date_submitted = models.DateTimeField(auto_now_add=True)
-
+    interview_date = models.DateTimeField(null=True, blank=True)
+    meeting_link = models.URLField(max_length=200, null=True, blank=True)
+    
     def __str__(self):
         return f"{self.employee.name} - {self.get_status_display()}"
