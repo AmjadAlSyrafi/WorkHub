@@ -18,7 +18,7 @@ from accounts.company import Company
 from rest_framework import viewsets
 from accounts.permissions import CanRateCompany, CanRateEmployee
 from job.models import JobApplication , Job
-from accounts.employee import Employee
+from accounts.employee import Employee , Comment ,Post , Like
 from job.serializers import JobSerializer , JobbSerializer
 from accounts.permissions import *
 from django.http import HttpResponse
@@ -498,4 +498,46 @@ class OTPVerificationView(generics.GenericAPIView):
         return Response({"detail": "OTP verified successfully."}, status=status.HTTP_200_OK)   
     
     
-    
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+    permission_classes = [IsAuthenticated, IsEmployee]
+
+    def perform_create(self, serializer):
+        serializer.save(employee=self.request.user.employee)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsEmployee])
+    def add_comment(self, request, pk=None):
+        post = self.get_object()
+        serializer = CommentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(employee=self.request.user.employee, post=post)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsEmployee])
+    def like(self, request, pk=None):
+        post = self.get_object()
+        employee = request.user.employee
+        like = Like.objects.filter(post=post, employee=employee).exists()
+        liked = Like.objects.filter(post=post, employee=employee)
+
+        if like :
+            liked.delete()
+            return Response({"status": "Success", "message": "Post unliked"}, status=status.HTTP_201_CREATED)
+        
+        Like.objects.create(post=post, employee=employee)
+        return Response({"status": "Success", "message": "Post liked"}, status=status.HTTP_201_CREATED)
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated, IsEmployee]
+
+    def perform_create(self, serializer):
+        serializer.save(employee=self.request.user.employee)
+
+class LikeViewSet(viewsets.ModelViewSet):
+    queryset = Like.objects.all()
+    serializer_class = LikeSerializer
+    permission_classes = [IsAuthenticated, IsEmployee]    

@@ -293,24 +293,27 @@ class OTPVerificationSerializer(serializers.Serializer):
     
 class CommentSerializer(serializers.ModelSerializer):
     employee = serializers.ReadOnlyField(source='employee.user.email')
+    employee_id = serializers.ReadOnlyField(source='employee.id')
 
     class Meta:
         model = Comment
-        fields = ['id', 'employee', 'content', 'created_at']
+        fields = ['id','employee_id','employee', 'content', 'created_at']
 
 class LikeSerializer(serializers.ModelSerializer):
     employee = serializers.ReadOnlyField(source='employee.user.email')
+    employee_id = serializers.ReadOnlyField(source='employee.id')
 
     class Meta:
         model = Like
-        fields = ['id', 'employee', 'created_at']
+        fields = ['id','employee_id', 'employee', 'created_at']
 
 class PostSerializer(serializers.ModelSerializer):
     employee = serializers.ReadOnlyField(source='employee.user.email')
+    employee_id = serializers.ReadOnlyField(source='employee.id')
     comments = CommentSerializer(many=True, read_only=True)
     likes = LikeSerializer(many=True, read_only=True)
     likes_count = serializers.IntegerField(source='likes.count', read_only=True)
 
     class Meta:
         model = Post
-        fields = ['id', 'employee', 'content', 'created_at', 'comments', 'likes', 'likes_count']    
+        fields = ['id','employee_id','employee', 'content', 'created_at', 'comments', 'likes', 'likes_count']    

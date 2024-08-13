@@ -2,7 +2,7 @@ from django.urls import path ,include
 from rest_framework_simplejwt.views import TokenRefreshView 
 from .views import (MyTokenObtainPairView , Logout , RegisterEmployeeView , 
                     RegisterCompanyView ,CompanyRatingViewSet, EmployeeRatingViewSet , EmployeeProfileViewSet ,
-                    CompanyViewSet , EmployeeViewSet,CompanyProfileViewSet,CustomPasswordResetView,OTPVerificationView)
+                    CompanyViewSet , EmployeeViewSet,CompanyProfileViewSet,CustomPasswordResetView,OTPVerificationView, PostViewSet, CommentViewSet, LikeViewSet)
 
 from rest_framework.routers import DefaultRouter ,SimpleRouter
 from django.conf import settings
@@ -16,6 +16,9 @@ router_default.register(r'company-ratings', CompanyRatingViewSet)
 router_default.register(r'employee-ratings', EmployeeRatingViewSet)
 router_default.register(r'company-profile', CompanyProfileViewSet, basename='company-profile')
 router_default.register(r'employee-profile', EmployeeProfileViewSet, basename='employee-profile')
+router_default.register(r'posts', PostViewSet, basename='post')
+router_default.register(r'comments', CommentViewSet, basename='comment')
+router_default.register(r'likes', LikeViewSet, basename='like') 
 
 
 router_simple = SimpleRouter()
