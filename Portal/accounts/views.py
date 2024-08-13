@@ -3,7 +3,7 @@ from .models import User
 from django.contrib.auth.models import Group
 from rest_framework.response import Response 
 from rest_framework import generics, status
-from .serializers import (MyTokenObtainPairSerializer,RegisterEmployeeSerializer ,UserCreateSerializer,OTPVerificationSerializer ,CustomPasswordResetSerializer,RegisterCompanySerializer)
+from .serializers import (MyTokenObtainPairSerializer,RegisterEmployeeSerializer ,UserCreateSerializer,OTPVerificationSerializer ,CustomPasswordResetSerializer,RegisterCompanySerializer,PostSerializer, CommentSerializer, LikeSerializer)
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics
 from rest_framework.permissions import AllowAny ,IsAuthenticated
@@ -496,3 +496,6 @@ class OTPVerificationView(generics.GenericAPIView):
         
         # Perform the OTP verification and any additional actions here
         return Response({"detail": "OTP verified successfully."}, status=status.HTTP_200_OK)   
+    
+    
+    
