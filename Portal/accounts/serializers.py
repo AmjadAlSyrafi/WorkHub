@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 from .models import User
 from accounts.company import Company
-from accounts.employee import Employee
+from accounts.employee import Employee , Comment ,Post , Like
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from accounts.company_rating import CompanyRating
@@ -289,3 +289,28 @@ class OTPVerificationSerializer(serializers.Serializer):
         user.otp_code = None  # Clear the OTP code after use
         user.save()
         return user        
+    
+    
+class CommentSerializer(serializers.ModelSerializer):
+    employee = serializers.ReadOnlyField(source='employee.user.email')
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'employee', 'content', 'created_at']
+
+class LikeSerializer(serializers.ModelSerializer):
+    employee = serializers.ReadOnlyField(source='employee.user.email')
+
+    class Meta:
+        model = Like
+        fields = ['id', 'employee', 'created_at']
+
+class PostSerializer(serializers.ModelSerializer):
+    employee = serializers.ReadOnlyField(source='employee.user.email')
+    comments = CommentSerializer(many=True, read_only=True)
+    likes = LikeSerializer(many=True, read_only=True)
+    likes_count = serializers.IntegerField(source='likes.count', read_only=True)
+
+    class Meta:
+        model = Post
+        fields = ['id', 'employee', 'content', 'created_at', 'comments', 'likes', 'likes_count']    

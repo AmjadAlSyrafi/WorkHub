@@ -262,6 +262,9 @@ class CompanyJobApplicationViewSet(viewsets.ModelViewSet):
     def update_status(self, request, pk=None):
         instance = self.get_object()
         status_data = request.data.get('status')
+        interview_date = request.data.get('interview_date')
+        meeting_link = request.data.get('meeting_link')        
+
         if status_data not in ['accepted', 'rejected']:
             return Response({'error': 'Invalid status. Only \'accepted\' or \'rejected\' allowed.'},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -274,8 +277,10 @@ class CompanyJobApplicationViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_403_FORBIDDEN)
 
         instance.status = status_data
+        instance.interview_date = interview_date
+        instance.meeting_link = meeting_link        
         instance.save()
-        serializer = self.get_serializer(instance)
+        serializer = JobbApplicationSerializer(instance)
         response_data = {
             "status": "Success",
             'meesage' : 'status updataed successfully',
